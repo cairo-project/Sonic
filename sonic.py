@@ -123,20 +123,26 @@ def test(
 
 
 class Sonic():
-    config_file = os.path.join(BASE_DIR, 'config/inference/sonic.yaml')
-    config = OmegaConf.load(config_file)
-
-    def __init__(self, 
+    def __init__(self,
                  device_id=0,
                  enable_interpolate_frame=True,
+                 model_dir=None,
+                 config_path=None,
                  ):
-        
-        config = self.config
+        if model_dir is None:
+            model_dir = os.environ.get("SONIC_MODEL_DIR", BASE_DIR)
+        if config_path is None:
+            config_path = os.environ.get(
+                "SONIC_CONFIG_PATH",
+                os.path.join(BASE_DIR, 'config/inference/sonic.yaml'),
+            )
+
+        config = OmegaConf.load(config_path)
         config.use_interframe = enable_interpolate_frame
 
         device = 'cuda:{}'.format(device_id) if device_id > -1 else 'cpu'
 
-        config.pretrained_model_name_or_path = os.path.join(BASE_DIR, config.pretrained_model_name_or_path)
+        config.pretrained_model_name_or_path = os.path.join(model_dir, config.pretrained_model_name_or_path)
 
         vae = AutoencoderKLTemporalDecoder.from_pretrained(
             config.pretrained_model_name_or_path, 
@@ -160,9 +166,9 @@ class Sonic():
         audio2token = AudioProjModel(seq_len=10, blocks=5, channels=384, intermediate_dim=1024, output_dim=1024, context_tokens=32).to(device)
         audio2bucket = Audio2bucketModel(seq_len=50, blocks=1, channels=384, clip_channels=1024, intermediate_dim=1024, output_dim=1, context_tokens=2).to(device)
 
-        unet_checkpoint_path = os.path.join(BASE_DIR, config.unet_checkpoint_path)
-        audio2token_checkpoint_path = os.path.join(BASE_DIR, config.audio2token_checkpoint_path)
-        audio2bucket_checkpoint_path = os.path.join(BASE_DIR, config.audio2bucket_checkpoint_path)
+        unet_checkpoint_path = os.path.join(model_dir, config.unet_checkpoint_path)
+        audio2token_checkpoint_path = os.path.join(model_dir, config.audio2token_checkpoint_path)
+        audio2bucket_checkpoint_path = os.path.join(model_dir, config.audio2bucket_checkpoint_path)
 
         unet.load_state_dict(
             torch.load(unet_checkpoint_path, map_location="cpu"),
@@ -191,17 +197,17 @@ class Sonic():
                 f"Do not support weight dtype: {config.weight_dtype} during training"
             )
 
-        whisper = WhisperModel.from_pretrained(os.path.join(BASE_DIR, 'checkpoints/whisper-tiny/')).to(device).eval()
-        
+        whisper = WhisperModel.from_pretrained(os.path.join(model_dir, 'checkpoints/whisper-tiny/')).to(device).eval()
+
         whisper.requires_grad_(False)
 
-        self.feature_extractor = AutoFeatureExtractor.from_pretrained(os.path.join(BASE_DIR, 'checkpoints/whisper-tiny/'))
+        self.feature_extractor = AutoFeatureExtractor.from_pretrained(os.path.join(model_dir, 'checkpoints/whisper-tiny/'))
 
-        det_path = os.path.join(BASE_DIR, os.path.join(BASE_DIR, 'checkpoints/yoloface_v5m.pt'))
+        det_path = os.path.join(model_dir, 'checkpoints/yoloface_v5m.pt')
         self.face_det = AlignImage(device, det_path=det_path)
         if config.use_interframe:
             rife = RIFEModel(device=device)
-            rife.load_model(os.path.join(BASE_DIR, 'checkpoints', 'RIFE/'))
+            rife.load_model(os.path.join(model_dir, 'checkpoints', 'RIFE/'))
             self.rife = rife
 
 
@@ -224,6 +230,7 @@ class Sonic():
         self.audio2bucket = audio2bucket
         self.image_encoder = image_encoder
         self.device = device
+        self.config = config
 
         print('init done')
 

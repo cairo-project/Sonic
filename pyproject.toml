@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sonic"
+version = "0.1.0"
+description = "Sonic: Shifting Focus to Global Audio Perception in Portrait Animation"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.0",
+    "torchvision",
+    "torchaudio",
+    "diffusers==0.29.0",
+    "transformers>=4.43.2,<5.0",
+    "omegaconf>=2.3",
+    "numpy>=1.24,<2",
+    "opencv-python",
+    "einops",
+    "tqdm",
+    "librosa",
+    "Pillow",
+    "imageio",
+    "imageio-ffmpeg",
+]
+
+[project.scripts]
+generate-sonic = "generate_sonic:main"
+
+[tool.setuptools]
+py-modules = ["generate_sonic", "sonic"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*", "config*"]
+
+[tool.setuptools.package-data]
+"config.inference" = ["*.yaml"]
