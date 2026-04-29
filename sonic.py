@@ -197,17 +197,17 @@ class Sonic():
                 f"Do not support weight dtype: {config.weight_dtype} during training"
             )
 
-        whisper = WhisperModel.from_pretrained(os.path.join(model_dir, 'checkpoints/whisper-tiny/')).to(device).eval()
+        whisper = WhisperModel.from_pretrained(os.path.join(model_dir, 'whisper-tiny/')).to(device).eval()
 
         whisper.requires_grad_(False)
 
-        self.feature_extractor = AutoFeatureExtractor.from_pretrained(os.path.join(model_dir, 'checkpoints/whisper-tiny/'))
+        self.feature_extractor = AutoFeatureExtractor.from_pretrained(os.path.join(model_dir, 'whisper-tiny/'))
 
-        det_path = os.path.join(model_dir, 'checkpoints/yoloface_v5m.pt')
+        det_path = os.path.join(model_dir, 'yoloface_v5m.pt')
         self.face_det = AlignImage(device, det_path=det_path)
         if config.use_interframe:
             rife = RIFEModel(device=device)
-            rife.load_model(os.path.join(model_dir, 'checkpoints', 'RIFE/'))
+            rife.load_model(os.path.join(model_dir, 'RIFE/'))
             self.rife = rife
 
 
